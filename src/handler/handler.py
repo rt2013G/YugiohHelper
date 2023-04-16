@@ -44,7 +44,7 @@ async def on_user_msg(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
         user_name = "none"
     print(user_id + " " + user_name) # debug
     if cfg.bot_tag not in update.message.text :
-        if (random.randint(0, 20) <= 18 or not cfg.respond_to_msg):
+        if (random.randint(0, 20) <= cfg.msg_threshold or not cfg.respond_to_msg):
             return
     
     # clean the message and grab only the last three elements
