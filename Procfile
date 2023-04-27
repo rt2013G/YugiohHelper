@@ -1,0 +1,1 @@
+worker: python3 yugioh_helper.py
