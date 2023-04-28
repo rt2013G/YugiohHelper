@@ -2,7 +2,6 @@
 .env
 data/
 YugiohHelper.code-workspace
-src/sentence_generator/model/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
