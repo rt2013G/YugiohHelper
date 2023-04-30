@@ -131,7 +131,8 @@ def set_date_today(user_id, is_sell_post):
 start_msg = f"""Benvenuto sul gruppo Yu-Gi-Oh ITA Main.
 Per entrare nel gruppo market segui questo link: {groups_dic["market_link"]}.\n
 Ricorda di leggere le regole! Solo i venditori approvati possono vendere sul gruppo.
-Se vuoi diventare venditore, usa il comando /seller."""
+Se vuoi diventare venditore, usa il comando /seller.\n
+Ricorda che in ogni caso, puoi effettuare solo 1 post di vendita e 1 post di acquisto al giorno."""
 
 auth_code = 0
 market_id = int(groups_dic["market"])
