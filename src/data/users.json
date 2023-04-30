@@ -151,5 +151,14 @@
         "is_active": true,
         "last_sell_post": "2015-01-15",
         "last_buy_post": "2015-01-15"
+    },
+    {
+        "id": "314497598",
+        "name": "N/A",
+        "tag": "@N/A",
+        "is_seller": true,
+        "is_active": false,
+        "last_sell_post": "2015-01-15",
+        "last_buy_post": "2015-01-15"
     }
 ]

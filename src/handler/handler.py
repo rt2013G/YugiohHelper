@@ -36,7 +36,8 @@ async def make_seller(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
             await context.bot.send_message(update.message.chat_id, "Utente approvato come venditore!", 
                                            reply_markup=ReplyKeyboardRemove())
         else:
-            await context.bot.send_message(update.message.chat_id, "Utente non trovato!", 
+            cfg.add_user_to_list(user_id, "N/A", "N/A", is_seller=True)
+            await context.bot.send_message(update.message.chat_id, "Utente approvato come venditore!", 
                                            reply_markup=ReplyKeyboardRemove())
     else:
         return
