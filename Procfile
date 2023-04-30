@@ -1,1 +1,1 @@
-worker: python3 yugioh_helper.py
+worker: python3 yugioh_helper.py ygodeploy

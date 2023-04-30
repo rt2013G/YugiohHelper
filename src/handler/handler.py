@@ -3,6 +3,7 @@ from telegram.ext import ContextTypes
 from src.card_search import card_search
 from src import config as cfg
 from datetime import datetime
+import time
 
 # /start command
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -56,6 +57,17 @@ async def remove_seller(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
     else:
         return
 
+async def add_admin(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    id = str(update.message.from_user.id)
+    if not cfg.is_superadmin(id):
+        return
+    new_admin_id = cfg.get_id_from_tag(cfg.remove_tag(update.message.text.replace("/addadmin ", "")))
+    if cfg.is_admin(new_admin_id):
+        await context.bot.send_message(update.message.chat_id, "Utente già admin!")
+        return
+    cfg.admin_dic[cfg.get_tag_from_id(new_admin_id)] = new_admin_id
+    await context.bot.send_message(update.message.chat_id, "Utente aggiunto come admin!")
+
 # Command to check if user_id is a seller or not, usage: /checkseller @username
 async def check_seller(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     user_id = cfg.get_id_from_tag(cfg.remove_tag(update.message.text.replace("/checkseller ", "")))
@@ -80,6 +92,8 @@ async def check_feedback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     await context.bot.send_message(update.message.chat_id, str(len(list)) + " feedback trovati!")
     
 async def market_msg_updater(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    cfg.file_sync()
+
     try:
         user_id = str(update.message.from_user.id)
     except:
@@ -133,6 +147,7 @@ async def market_msg_updater(update: Update, context: ContextTypes.DEFAULT_TYPE)
 
 # debug
 async def on_user_msg(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    cfg.file_sync()
     try:
         user_id = str(update.message.from_user.id)
         user_name = str(update.message.from_user.full_name)

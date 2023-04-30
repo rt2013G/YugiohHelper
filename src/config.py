@@ -1,13 +1,20 @@
 import json
 import os
+import time
+import sys
 from datetime import datetime
 from dotenv import load_dotenv
 
 load_dotenv()
-bot_token = os.getenv("bot_token") 
-# heroku_port = int(os.environ.get("PORT")) # uncomment this line for heroku
+if len(sys.argv) == 2 and sys.argv[1] == "ygodeploy":
+    bot_token = os.getenv("bot_token")
+    bot_tag = "@yugiohmainbot"
+    heroku_port = int(os.environ.get("PORT"))
+else:
+    bot_token = os.getenv("bot_token_test") 
+    bot_tag = "@yugiohhelpertestbot"
 
-bot_tag = "@yugiohmainbot"
+last_sync = time.time()
 
 admin_dic = {}
 with open(os.path.dirname(__file__) + "/data/admin.json") as fp:
@@ -40,6 +47,13 @@ def save_files():
         json.dump(scam_list, fp, indent=4)
     with open(os.path.dirname(__file__) + "/data/feedback.json", "w") as fp:
         json.dump(feedback_list, fp, indent=4)
+    print("Files saved at " + str(datetime.now()))
+
+def file_sync():
+    if time.time() - last_sync > 300:
+        save_files()
+        last_sync = time.time()
+        print("Files synced at " + str(datetime.now()))
 
 # Other utilities
 def remove_tag(text):
@@ -127,7 +141,6 @@ def set_date_today(user_id, is_sell_post):
     else:
         list(filter(lambda x: x["id"] == user_id, users_list))[0]["last_buy_post"] = str(datetime.today().date())
 
-# Default messages
 start_msg = f"""Benvenuto sul gruppo Yu-Gi-Oh ITA Main.
 Per entrare nel gruppo market segui questo link: {groups_dic["market_link"]}.\n
 Ricorda di leggere le regole! Solo i venditori approvati possono vendere sul gruppo.
@@ -135,7 +148,7 @@ Se vuoi diventare venditore, usa il comando /seller.\n
 Ricorda che in ogni caso, puoi effettuare solo 1 post di vendita e 1 post di acquisto al giorno."""
 
 auth_code = 0
-market_id = int(groups_dic["market"])
+market_id = int(groups_dic["market_beta"])
 main_id = int(groups_dic["main"])
 auction_id = int(groups_dic["auction"])
 feedback_id = int(groups_dic["feedback"])

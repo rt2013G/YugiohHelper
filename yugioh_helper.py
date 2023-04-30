@@ -23,6 +23,7 @@ def main():
     application.add_handler(CommandHandler("checkseller", handler.check_seller))
     application.add_handler(CommandHandler("checkscammer", handler.check_scammer))
     application.add_handler(CommandHandler("feedback", handler.check_feedback, filters.ChatType.PRIVATE))
+    application.add_handler(CommandHandler("addadmin", handler.add_admin, filters.ChatType.PRIVATE))
     application.add_handler(auth.conv_handler)
     application.add_handler(MessageHandler(filters.ChatType.CHANNEL, handler.channel_msg_handler))
     application.add_handler(MessageHandler(filters.TEXT & ~filters.Chat(chat_id=cfg.market_id), handler.on_user_msg))
