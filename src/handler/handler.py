@@ -70,7 +70,7 @@ async def check_scammer(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
     if cfg.is_scammer(user_id):
         await context.bot.send_message(update.message.chat_id, "L'utente è uno scammer!")
     else:
-        await context.bot.send_message(update.message.chat_id, "L'utente non è uno scammer!")
+        await context.bot.send_message(update.message.chat_id, "L'utente non è attualmente presente nella lista scammer!")
 
 async def check_feedback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     user_id = cfg.get_id_from_tag(cfg.remove_tag(update.message.text.replace("/feedback ", "")))
@@ -92,6 +92,9 @@ async def market_msg_updater(update: Update, context: ContextTypes.DEFAULT_TYPE)
         text = update.message.text
     except:
         text = update.message.caption
+
+    if cfg.is_admin(user_id):
+        return
 
     if not any(user_id in d.values() for d in cfg.users_list) or not cfg.is_active(user_id):
         await update.message.delete()

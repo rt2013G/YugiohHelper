@@ -1,6 +1,6 @@
 # Project related files
 .env
-data/
+#data/
 YugiohHelper.code-workspace
 
 # Byte-compiled / optimized / DLL files

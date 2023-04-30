@@ -134,7 +134,7 @@ Ricorda di leggere le regole! Solo i venditori approvati possono vendere sul gru
 Se vuoi diventare venditore, usa il comando /seller."""
 
 auth_code = 0
-market_id = int(groups_dic["market_beta"])
+market_id = int(groups_dic["market"])
 main_id = int(groups_dic["main"])
 auction_id = int(groups_dic["auction"])
 feedback_id = int(groups_dic["feedback"])
