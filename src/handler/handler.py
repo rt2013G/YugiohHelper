@@ -6,7 +6,17 @@ from datetime import datetime
 
 # /start command
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    await context.bot.send_message(update.message.chat_id, cfg.start_msg)
+    id = str(update.message.from_user.id)
+    try:
+        user_tag = str(update.message.from_user.username)
+    except:
+        user_tag = "N/A"
+    if not any(id in d.values() for d in cfg.users_list):
+        cfg.add_user_to_list(id, str(update.message.from_user.full_name), user_tag, is_active=True)
+    else:
+        list(filter(lambda x: x["id"] == id, cfg.users_list))[0]["is_active"] = True
+    await context.bot.send_message(update.message.chat_id, cfg.start_msg, 
+                                   disable_web_page_preview=True)
 
 # Card search with /card
 async def card_search_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -14,7 +24,7 @@ async def card_search_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
         cfg.remove_tag(update.message.text.replace("/card ", ""))), 
         disable_web_page_preview=True)
     
-# Command to approve a seller, usage: /makeseller <user_id>, will be changed in the future
+# Command to approve a seller, usage: /makeseller <user_id>
 async def make_seller(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     if cfg.is_admin(str(update.message.from_user.id)):
         user_id = cfg.remove_tag(update.message.text.replace("/makeseller ", ""))
@@ -30,7 +40,7 @@ async def make_seller(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
     else:
         return
     
-# Command to approve a seller, usage: /removerseller <user_id>, will be changed in the future
+# Command to approve a seller, usage: /removerseller <user_id>
 async def remove_seller(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     if cfg.is_admin(str(update.message.from_user.id)):
         user_id = cfg.remove_tag(update.message.text.replace("/removeseller ", ""))
@@ -45,40 +55,94 @@ async def remove_seller(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
                                            reply_markup=ReplyKeyboardRemove())
     else:
         return
+
+# Command to check if user_id is a seller or not, usage: /checkseller @username
+async def check_seller(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    user_id = cfg.get_id_from_tag(cfg.remove_tag(update.message.text.replace("/checkseller ", "")))
+    if cfg.is_seller(user_id):
+        await context.bot.send_message(update.message.chat_id, "L'utente è un venditore!")
+    else:
+        await context.bot.send_message(update.message.chat_id, "L'utente non è un venditore!")
+
+# Command to check if user_id is an scammer or not, usage: /checkscammer @username
+async def check_scammer(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    user_id = cfg.get_id_from_tag(cfg.remove_tag(update.message.text.replace("/checkscammer ", "")))
+    if cfg.is_scammer(user_id):
+        await context.bot.send_message(update.message.chat_id, "L'utente è uno scammer!")
+    else:
+        await context.bot.send_message(update.message.chat_id, "L'utente non è uno scammer!")
+
+async def check_feedback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    user_id = cfg.get_id_from_tag(cfg.remove_tag(update.message.text.replace("/feedback ", "")))
+    list = cfg.get_feedback(user_id)
+    for feedback in list:
+        await context.bot.send_message(update.message.chat_id, f"{feedback}")
+    await context.bot.send_message(update.message.chat_id, str(len(list)) + " feedback trovati!")
     
 async def market_msg_updater(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    # debug
     try:
-        user_id = str(update.message.from_user.id)  
+        user_id = str(update.message.from_user.id)
     except:
         return
-    
+    try:
+        user_tag = str(update.message.from_user.username)
+    except:
+        user_tag = "N/A"
     try:
         text = update.message.text
     except:
         text = update.message.caption
 
+    if not any(user_id in d.values() for d in cfg.users_list) or not cfg.is_active(user_id):
+        await update.message.delete()
+        return
+
+    if(cfg.is_scammer(user_id)):
+        await context.bot.send_message(update.message.chat_id, f"Ho eliminato il messaggio di {update.message.from_user.full_name}, tag: @{user_tag} perche' e' uno scammer!")
+        await update.message.delete()
+        return
+
+    cfg.update_user(user_id, str(update.message.from_user.full_name), user_tag)
+
+    if cfg.is_feedback(text):
+        print(cfg.get_tag_from_text(text))
+        if "@" not in text:
+            return
+        await update.message.forward(cfg.feedback_id)
+        cfg.add_feedback(cfg.get_id_from_tag(cfg.get_tag_from_text(text)), text)
+        return
+
     if cfg.is_sell_post(text):
-        if datetime.now().day - list(filter(lambda x: x["id"] == user_id, cfg.users_list))[0]["last_sell_post"] == 0:
-            await context.bot.send_message(user_id, "Hai già inviato un post di vendo oggi!")
+        if not cfg.is_seller(user_id):
+            await context.bot.send_message(user_id, "Il tuo messaggio è stato eliminato, non sei un venditore! Usa /seller per poter vendere nel gruppo market.")
             await update.message.delete()
-        list(filter(lambda x: x["id"] == user_id, cfg.users_list))[0]["last_sell_post"] = datetime.now().day
+            return
+        if str(datetime.now().date()) == cfg.get_date(user_id, is_sell_post=True):
+            await context.bot.send_message(user_id, "Il tuo messaggio è stato eliminato, hai già inviato un post di vendo oggi!")
+            await update.message.delete()
+        cfg.set_date_today(user_id, is_sell_post=True)
 
     if cfg.is_buy_post(text):
-        if datetime.now().day - list(filter(lambda x: x["id"] == user_id, cfg.users_list))[0]["last_buy_post"] == 0:
-            await context.bot.send_message(user_id, "Hai già inviato un post di cerco oggi!")
+        if str(datetime.now().date()) == cfg.get_date(user_id, is_sell_post=False):
+            await context.bot.send_message(user_id, "Il tuo messaggio è stato eliminato, hai già inviato un post di cerco oggi!")
             await update.message.delete()
-        list(filter(lambda x: x["id"] == user_id, cfg.users_list))[0]["last_buy_post"] = datetime.now().day
-
+        cfg.set_date_today(user_id, is_sell_post=False)
 
 # debug
 async def on_user_msg(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     try:
         user_id = str(update.message.from_user.id)
         user_name = str(update.message.from_user.full_name)
+        user_tag = str(update.message.from_user.username)
         if not any(user_id in d.values() for d in cfg.users_list):
-            cfg.add_user_to_list(user_id, user_name)
+            cfg.add_user_to_list(user_id, user_name, user_tag)
+        else:
+            cfg.update_user(user_id, user_name, user_tag)
     except:
         return
     print(user_id + " " + user_name)
     print("  group: " + str(update.message.chat_id))
+
+# debug
+async def channel_msg_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    print(str(update.channel_post.chat_id) + " " + str(update.channel_post.chat.title))

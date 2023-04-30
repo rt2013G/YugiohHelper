@@ -1,2 +1,2 @@
 # YugiohHelper
-A Telegram bot that provides useful function related to the Yu-Gi-Oh card game
+Telegram bot that handles @yugiohitatcgocg and affiliates, mainly the marketplace group.
