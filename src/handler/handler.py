@@ -93,10 +93,9 @@ async def check_feedback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     await context.bot.send_message(update.message.chat_id, str(len(list)) + " feedback trovati!")
     
 async def market_msg_updater(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    if time.time() - cfg.last_sync > 300:
+    if time.time() - cfg.last_sync > 60:
         cfg.save_files()
         cfg.last_sync = time.time()
-        print("Files synced at " + str(datetime.now()))
 
     try:
         user_id = str(update.message.from_user.id)
@@ -151,10 +150,9 @@ async def market_msg_updater(update: Update, context: ContextTypes.DEFAULT_TYPE)
 
 # debug
 async def on_user_msg(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    if time.time() - cfg.last_sync > 300:
+    if time.time() - cfg.last_sync > 60:
         cfg.save_files()
         cfg.last_sync = time.time()
-        print("Files synced at " + str(datetime.now()))
     try:
         user_id = str(update.message.from_user.id)
         user_name = str(update.message.from_user.full_name)
