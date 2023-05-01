@@ -2,19 +2,11 @@ import json
 import os
 import time
 import sys
+import zlib
 from datetime import datetime
 from dotenv import load_dotenv
 
 load_dotenv()
-if len(sys.argv) == 2 and sys.argv[1] == "ygodeploy":
-    bot_token = os.getenv("bot_token")
-    bot_tag = "@yugiohmainbot"
-    heroku_port = int(os.environ.get("PORT"))
-else:
-    bot_token = os.getenv("bot_token_test") 
-    bot_tag = "@yugiohhelpertestbot"
-
-last_sync = time.time()
 
 admin_dic = {}
 with open(os.path.dirname(__file__) + "/data/admin.json") as fp:
@@ -48,6 +40,22 @@ def save_files():
     with open(os.path.dirname(__file__) + "/data/feedback.json", "w") as fp:
         json.dump(feedback_list, fp, indent=4)
     print("Files saved at " + str(datetime.now()))
+
+if len(sys.argv) == 2 and sys.argv[1] == "ygodeploy":
+    bot_token = os.getenv("bot_token")
+    bot_tag = "@yugiohmainbot"
+    market_id = int(groups_dic["market"])
+    feedback_id = int(groups_dic["feedback"])
+    #heroku_port = int(os.environ.get("PORT"))
+else:
+    bot_token = os.getenv("bot_token_test") 
+    bot_tag = "@yugiohhelpertestbot"
+    market_id = int(groups_dic["market_beta"])
+    feedback_id = int(groups_dic["market_beta"])
+
+main_id = int(groups_dic["main"])
+auction_id = int(groups_dic["auction"])
+last_sync = time.time()
 
 # Other utilities
 def remove_tag(text):
@@ -89,22 +97,37 @@ def get_tag_from_id(user_id):
     return list(filter(lambda x: x["id"] == user_id, users_list))[0]["tag"]
 
 def get_tag_from_text(text):
-    for word in text.split():
+    for word in text.replace(",", "").replace(".", "").replace("!", "").split():
         if "@" in word:
+            print(word)
             return word
     return ""
 
+def get_code_from_id(user_id):
+    code = "%08X" % zlib.adler32(str(user_id).encode())
+    return code[:-2]
+
+def get_admin_from_id(user_id):
+    index = "%08X" % zlib.adler32(str(user_id).encode())
+    index = int(index, 16) % len(admin_dic)
+    admin_id = list(admin_dic.values())[index]
+    return admin_id
+
 def get_feedback(user_id):
+    list_to_return = []
     if not any(user_id in d.values() for d in feedback_list):
         return []
     else:
-        return list(filter(lambda x: x["id"] == user_id, feedback_list))[0]["feedback_list"]
+        for feedback in list(filter(lambda x: x["id"] == user_id, feedback_list))[0]["feedback_list"]:
+            list_to_return.append("Feedback di: " + feedback["from_tag"] + " (ID " + feedback["from_id"] + "):\n" + feedback["text"])
+        return list_to_return
 
-def add_feedback(user_id, text):
+def add_feedback(user_id, from_user_id, text):
+    dic_to_ins = {"from_id": str(from_user_id), "from_tag": get_tag_from_id(from_user_id), "text": text}
     if not any(user_id in d.values() for d in feedback_list):
-        feedback_list.append({"id": str(user_id), "feedback_list": [text]})
+        feedback_list.append({"id": str(user_id), "feedback_list": [dic_to_ins]})
     else:
-        list(filter(lambda x: x["id"] == user_id, feedback_list))[0]["feedback_list"].append(text)
+        list(filter(lambda x: x["id"] == user_id, feedback_list))[0]["feedback_list"].append(dic_to_ins)
 
 def update_user(user_id, user_name, tag):
     list(filter(lambda x: x["id"] == user_id, users_list))[0]["name"] = user_name
@@ -140,9 +163,3 @@ Per entrare nel gruppo market segui questo link: {groups_dic["market_link"]}.\n
 Ricorda di leggere le regole! Solo i venditori approvati possono vendere sul gruppo.
 Se vuoi diventare venditore, usa il comando /seller.\n
 Ricorda che in ogni caso, puoi effettuare solo 1 post di vendita e 1 post di acquisto al giorno."""
-
-auth_code = 0
-market_id = int(groups_dic["market_beta"])
-main_id = int(groups_dic["main"])
-auction_id = int(groups_dic["auction"])
-feedback_id = int(groups_dic["feedback"])

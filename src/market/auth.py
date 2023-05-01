@@ -1,10 +1,9 @@
 from telegram import Update, ReplyKeyboardMarkup, ReplyKeyboardRemove
 from telegram.ext import ConversationHandler, ContextTypes, CommandHandler, MessageHandler, filters
 from src import config as cfg
-import random
+import os
 
 CODE, VIDEO = range(2)
-admin_id = random.choice(list(cfg.admin_dic.values()))
 
 async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     user = update.message.from_user
@@ -30,14 +29,15 @@ async def seller(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     return CODE
 
 async def code(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    cfg.auth_code = random.randint(100000, 999999)
-    await update.message.reply_text(f"Registra un video di te stesso mentre leggi il codice sottostante, mantenendo bene in vista un identificativo qualsiasi (carta d'identità, patente, etc.)\nUsa /annulla per annullare l'operazione.\n\n\n{cfg.auth_code}")
+    await update.message.reply_text(f"Registra un video di te stesso mentre leggi il codice sottostante, mantenendo bene in vista un identificativo qualsiasi (carta d'identità, patente, etc.). Non è necessario inquadrare la faccia.\nUsa /annulla per annullare l'operazione.\n\n\n{cfg.get_code_from_id(update.message.from_user.id)}")
     return VIDEO
 
 async def video(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    admin_id = random.choice(list(cfg.admin_dic.values()))
+    video = await context.bot.get_file(update.message.video)
+    admin_id = cfg.get_admin_from_id(update.message.from_user.id)
+    await video.download_to_drive(os.path.dirname(__file__) + f"/../data/auth_files/{update.message.from_user.id}.mp4")
     await context.bot.forward_message(admin_id, update.message.chat_id, update.message.message_id)
-    await context.bot.send_message(admin_id, f"Codice: {cfg.auth_code}")
+    await context.bot.send_message(admin_id, f"Codice: {cfg.get_code_from_id(update.message.from_user.id)}")
     await context.bot.send_message(admin_id, f"Rendi l'utente un venditore con il comando /makeseller {update.message.from_user.id}", 
                                    reply_markup=ReplyKeyboardMarkup([[f"/makeseller {update.message.from_user.id}"]] , 
                                                                     one_time_keyboard=True))
@@ -45,7 +45,7 @@ async def video(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     return ConversationHandler.END
      
 conv_handler = ConversationHandler(
-        entry_points=[MessageHandler(filters.ChatType.PRIVATE & filters.COMMAND, seller)],
+        entry_points=[CommandHandler("seller", seller, filters.ChatType.PRIVATE)],
         states={
             CODE: [MessageHandler(filters.Regex("^(Autenticazione)$"), code), CommandHandler("annulla", cancel)],
             VIDEO: [MessageHandler(filters.VIDEO, video), CommandHandler("annulla", cancel)],

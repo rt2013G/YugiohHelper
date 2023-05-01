@@ -42,7 +42,7 @@ async def make_seller(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
     else:
         return
     
-# Command to approve a seller, usage: /removerseller <user_id>
+# Command to remove a seller, usage: /removerseller <user_id>
 async def remove_seller(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     if cfg.is_admin(str(update.message.from_user.id)):
         user_id = cfg.remove_tag(update.message.text.replace("/removeseller ", ""))
@@ -86,7 +86,7 @@ async def check_scammer(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
         await context.bot.send_message(update.message.chat_id, "L'utente non è attualmente presente nella lista scammer!")
 
 async def check_feedback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    user_id = cfg.get_id_from_tag(cfg.remove_tag(update.message.text.replace("/feedback ", "")))
+    user_id = cfg.get_id_from_tag(cfg.remove_tag(update.message.text.replace("/feedback", "").replace(" ", "")))
     list = cfg.get_feedback(user_id)
     for feedback in list:
         await context.bot.send_message(update.message.chat_id, f"{feedback}")
@@ -110,9 +110,6 @@ async def market_msg_updater(update: Update, context: ContextTypes.DEFAULT_TYPE)
     except:
         text = update.message.caption
 
-    if cfg.is_admin(user_id):
-        return
-
     if not any(user_id in d.values() for d in cfg.users_list) or not cfg.is_active(user_id):
         await update.message.delete()
         return
@@ -128,10 +125,11 @@ async def market_msg_updater(update: Update, context: ContextTypes.DEFAULT_TYPE)
         print(cfg.get_tag_from_text(text))
         if "@" not in text:
             return
+        cfg.add_feedback(cfg.get_id_from_tag(cfg.get_tag_from_text(text)), user_id, text)
         await update.message.forward(cfg.feedback_id)
-        cfg.add_feedback(cfg.get_id_from_tag(cfg.get_tag_from_text(text)), text)
         return
-
+    if cfg.is_admin(user_id):
+        return
     if cfg.is_sell_post(text):
         if not cfg.is_seller(user_id):
             await context.bot.send_message(user_id, "Il tuo messaggio è stato eliminato, non sei un venditore! Usa /seller per poter vendere nel gruppo market.")

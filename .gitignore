@@ -1,6 +1,6 @@
 # Project related files
 .env
-#data/
+data/
 todo
 YugiohHelper.code-workspace
 
