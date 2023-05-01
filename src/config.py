@@ -49,12 +49,6 @@ def save_files():
         json.dump(feedback_list, fp, indent=4)
     print("Files saved at " + str(datetime.now()))
 
-def file_sync():
-    if time.time() - last_sync > 300:
-        save_files()
-        last_sync = time.time()
-        print("Files synced at " + str(datetime.now()))
-
 # Other utilities
 def remove_tag(text):
     text = text.replace(bot_tag, "")
