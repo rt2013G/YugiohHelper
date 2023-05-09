@@ -35,6 +35,7 @@ async def make_seller(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
                                            reply_markup=ReplyKeyboardRemove())
             await context.bot.send_message(update.message.chat_id, "Utente approvato come venditore!", 
                                            reply_markup=ReplyKeyboardRemove())
+            await context.bot.send_message(cfg.log_channel_id, f"Utente {cfg.get_tag_from_id(user_id)} ({user_id}) approvato come venditore da {update.message.from_user.full_name} ({update.message.from_user.id})")
         else:
             cfg.add_user_to_list(user_id, "N/A", "N/A", is_seller=True)
             await context.bot.send_message(update.message.chat_id, "Utente approvato come venditore!", 
@@ -96,6 +97,7 @@ async def market_msg_updater(update: Update, context: ContextTypes.DEFAULT_TYPE)
     if time.time() - cfg.last_sync > 300:
         cfg.save_files()
         cfg.last_sync = time.time()
+        await context.bot.send_message(cfg.log_channel_id, "File salvati: " + str(datetime.now()))
 
     try:
         user_id = str(update.message.from_user.id)
@@ -139,18 +141,33 @@ async def market_msg_updater(update: Update, context: ContextTypes.DEFAULT_TYPE)
             await context.bot.send_message(user_id, "Il tuo messaggio è stato eliminato, hai già inviato un post di vendo oggi!")
             await update.message.delete()
         cfg.set_date_today(user_id, is_sell_post=True)
+        await context.bot.send_message(cfg.log_channel_id, "Inviato post di vendo da " + update.message.from_user.full_name + " con testo:\n" + update.message.text)
 
     if cfg.is_buy_post(text):
         if str(datetime.now().date()) == cfg.get_date(user_id, is_sell_post=False):
             await context.bot.send_message(user_id, "Il tuo messaggio è stato eliminato, hai già inviato un post di cerco oggi!")
             await update.message.delete()
         cfg.set_date_today(user_id, is_sell_post=False)
+        await context.bot.send_message(cfg.log_channel_id, "Inviato post di cerco da " + update.message.from_user.full_name + " con testo:\n" + update.message.text)
+
+async def announce(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    admin_id = str(update.message.from_user.id)
+    if not cfg.is_admin(admin_id):
+        return
+    await context.bot.send_message(admin_id, "Annuncio inviato!")
+    await context.bot.send_message(cfg.log_channel_id, "Inviato annuncio da " + update.message.from_user.full_name + " con testo:\n" + update.message.text.replace("/announce", ""))
+    for user in cfg.users_list:
+        try:
+            await context.bot.send_message(user["id"], update.message.text.replace("/announce", ""))
+        except:
+            pass
 
 # debug
 async def on_user_msg(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     if time.time() - cfg.last_sync > 300:
         cfg.save_files()
         cfg.last_sync = time.time()
+        await context.bot.send_message(cfg.log_channel_id, "File salvati: " + str(datetime.now()))
     try:
         user_id = str(update.message.from_user.id)
         user_name = str(update.message.from_user.full_name)

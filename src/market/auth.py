@@ -34,11 +34,10 @@ async def code(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
 
 async def video(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     video = await context.bot.get_file(update.message.video)
-    admin_id = cfg.get_admin_from_id(update.message.from_user.id)
     await video.download_to_drive(os.path.dirname(__file__) + f"/../data/auth_files/{update.message.from_user.id}.mp4")
-    await context.bot.forward_message(admin_id, update.message.chat_id, update.message.message_id)
-    await context.bot.send_message(admin_id, f"Codice: {cfg.get_code_from_id(update.message.from_user.id)}")
-    await context.bot.send_message(admin_id, f"Rendi l'utente un venditore con il comando /makeseller {update.message.from_user.id}", 
+    await context.bot.forward_message(cfg.approve_group, update.message.chat_id, update.message.message_id)
+    await context.bot.send_message(cfg.approve_group, f"Codice: {cfg.get_code_from_id(update.message.from_user.id)}")
+    await context.bot.send_message(cfg.approve_group, f"/makeseller {update.message.from_user.id}", 
                                    reply_markup=ReplyKeyboardMarkup([[f"/makeseller {update.message.from_user.id}"]] , 
                                                                     one_time_keyboard=True))
     await update.message.reply_text("Riceverai a breve una notifica di conferma.")

@@ -55,6 +55,8 @@ else:
 
 main_id = int(groups_dic["main"])
 auction_id = int(groups_dic["auction"])
+approve_group = int(groups_dic["approve_group"])
+log_channel_id = int(groups_dic["log_channel"])
 last_sync = time.time()
 
 # Other utilities
@@ -76,9 +78,13 @@ def add_user_to_list(user_id, user_name, tag, is_seller=False, is_active=False,
                        "last_sell_post": str(last_sell_post), "last_buy_post": str(last_buy_post)})
 
 def is_active(user_id):
+    if not any(user_id in d.values() for d in users_list):
+        return False
     return list(filter(lambda x: x["id"] == user_id, users_list))[0]["is_active"]
 
 def is_seller(user_id):
+    if not any(user_id in d.values() for d in users_list):
+        return False
     return list(filter(lambda x: x["id"] == user_id, users_list))[0]["is_seller"]
 
 def is_scammer(user_id):
