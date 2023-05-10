@@ -139,6 +139,13 @@ def update_user(user_id, user_name, tag):
     list(filter(lambda x: x["id"] == user_id, users_list))[0]["name"] = user_name
     list(filter(lambda x: x["id"] == user_id, users_list))[0]["tag"] = "@" + tag
 
+def reset_date(user_id):
+    if not any(user_id in d.values() for d in users_list):
+        return False
+    list(filter(lambda x: x["id"] == user_id, users_list))[0]["last_sell_post"] = "2015-01-15"
+    list(filter(lambda x: x["id"] == user_id, users_list))[0]["last_buy_post"] = "2015-01-15"
+    return True
+
 # ugly, will fix later
 def is_sell_post(message):
     text = message.lower()
@@ -169,3 +176,9 @@ Per entrare nel gruppo market segui questo link: {groups_dic["market_link"]}.\n
 Ricorda di leggere le regole! Solo i venditori approvati possono vendere sul gruppo.
 Se vuoi diventare venditore, usa il comando /seller.\n
 Ricorda che in ogni caso, puoi effettuare solo 1 post di vendita e 1 post di acquisto al giorno."""
+
+gdpr_msg = f"""Al fine di limitare il numero di truffatori, per autenticarsi come seller è necessario fornire un identificativo.
+Se non si vuole vendere sul gruppo, NON è ovviamente obbligatorio autenticarsi.
+Il video inviatoci è visibile soltanto agli amministratori del gruppo market, e viene salvato dal bot. Non è condiviso con nessun altro.
+Il video non viene utilizzato per nessuno scopo ECCETTO in caso di truffa da parte di un venditore, in quel caso potrebbe essere utilizzato al fine di risalire all'identità del truffatore.
+"""

@@ -22,7 +22,7 @@ async def seller(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
         await update.message.reply_text("Sei già un venditore.", reply_markup=ReplyKeyboardRemove())
         return ConversationHandler.END
     
-    await update.message.reply_text("Usa /annulla per annullare l'operazione, altrimenti premi su Autenticazione",
+    await update.message.reply_text("Usa /annulla per annullare l'operazione, altrimenti premi su Autenticazione.\n(E' necessario un @username per diventare seller!)\n\nNota bene: Premendo su Autenticazione stai acconsentendo al trattamento dei tuoi dati personali, per maggiori informazioni usa il comando /gdpr",
             reply_markup=ReplyKeyboardMarkup(
             [["Autenticazione"]], one_time_keyboard=True))
     
@@ -33,6 +33,9 @@ async def code(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     return VIDEO
 
 async def video(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    if update.message.from_user.username is None:
+        await update.message.reply_text("Non hai un @username, non puoi diventare seller.", reply_markup=ReplyKeyboardRemove())
+        return ConversationHandler.END
     video = await context.bot.get_file(update.message.video)
     await video.download_to_drive(os.path.dirname(__file__) + f"/../data/auth_files/{update.message.from_user.id}.mp4")
     await context.bot.forward_message(cfg.approve_group, update.message.chat_id, update.message.message_id)

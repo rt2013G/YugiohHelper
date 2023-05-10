@@ -30,6 +30,10 @@ async def make_seller(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
     if cfg.is_admin(str(update.message.from_user.id)):
         user_id = cfg.remove_tag(update.message.text.replace("/makeseller ", ""))
         if any(user_id in d.values() for d in cfg.users_list):
+            if cfg.is_seller(user_id):
+                await context.bot.send_message(update.message.chat_id, "Utente già venditore!", 
+                                               reply_markup=ReplyKeyboardRemove())
+                return
             list(filter(lambda x: x["id"] == user_id, cfg.users_list))[0]["is_seller"] = True
             await context.bot.send_message(user_id, "Sei stato approvato come venditore, ora puoi vendere nel gruppo market!", 
                                            reply_markup=ReplyKeyboardRemove())
@@ -59,6 +63,18 @@ async def remove_seller(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
     else:
         return
 
+# Command to reject a seller auth request, usage: /reject <user_id>
+async def reject_seller(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    admin_id = str(update.message.from_user.id)
+    if not cfg.is_admin(admin_id):
+        return
+    user_id = cfg.remove_tag(update.message.text.replace("/reject ", ""))
+    if not any(user_id in d.values() for d in cfg.users_list):
+        await context.bot.send_message(update.message.chat_id, "Utente non trovato!")
+        return
+    await context.bot.send_message(user_id, "La tua richiesta di diventare venditore è stata rifiutata, controlla che l'identificativo inviato sia leggibile e che il video non sia capovolto. Dopodiché usa nuovamente il comando /seller.")
+    await context.bot.send_message(update.message.chat_id, "L'utente è stato notificato del rifiuto.")
+
 async def add_admin(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     id = str(update.message.from_user.id)
     if not cfg.is_superadmin(id):
@@ -78,13 +94,39 @@ async def check_seller(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     else:
         await context.bot.send_message(update.message.chat_id, "L'utente non è un venditore!")
 
-# Command to check if user_id is an scammer or not, usage: /checkscammer @username
+# Command to check if user_id is a scammer or not, usage: /checkscammer @username
 async def check_scammer(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     user_id = cfg.get_id_from_tag(cfg.remove_tag(update.message.text.replace("/checkscammer ", "")))
     if cfg.is_scammer(user_id):
         await context.bot.send_message(update.message.chat_id, "L'utente è uno scammer!")
     else:
         await context.bot.send_message(update.message.chat_id, "L'utente non è attualmente presente nella lista scammer!")
+
+# Command to add a user to the scammer list, usage: /addscammer @username
+async def add_scammer(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    admin_id = str(update.message.from_user.id)
+    if not cfg.is_admin(admin_id):
+        return
+    new_scammer_id = cfg.get_id_from_tag(cfg.remove_tag(update.message.text.replace("/addscammer ", "")))
+    if cfg.is_scammer(new_scammer_id):
+        await context.bot.send_message(admin_id, "Utente già nella lista scammer!")
+        return
+    cfg.scam_list.append(new_scammer_id)
+    await context.bot.send_message(admin_id, "Utente aggiunto come scammer!")
+    await context.bot.send_message(cfg.log_channel_id, f"Utente {cfg.get_tag_from_id(new_scammer_id)} ({new_scammer_id}) aggiunto come scammer da {update.message.from_user.full_name} ({update.message.from_user.id})")
+
+# Command to remove a user from the scammer list, usage: /removescammer @username
+async def remove_scammer(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    admin_id = str(update.message.from_user.id)
+    if not cfg.is_admin(admin_id):
+        return
+    scammer_id = cfg.get_id_from_tag(cfg.remove_tag(update.message.text.replace("/removescammer ", "")))
+    if not cfg.is_scammer(scammer_id):
+        await context.bot.send_message(admin_id, "L'utente non è nella lista scammer!")
+        return
+    cfg.scam_list.remove(scammer_id)
+    await context.bot.send_message(admin_id, "Utente rimosso dalla lista scammer!")
+    await context.bot.send_message(cfg.log_channel_id, f"Utente {cfg.get_tag_from_id(scammer_id)} ({scammer_id}) rimosso dalla lista scammer da {update.message.from_user.full_name} ({update.message.from_user.id})")
 
 async def check_feedback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     user_id = cfg.get_id_from_tag(cfg.remove_tag(update.message.text.replace("/feedback", "").replace(" ", "")))
@@ -107,10 +149,11 @@ async def market_msg_updater(update: Update, context: ContextTypes.DEFAULT_TYPE)
         user_tag = str(update.message.from_user.username)
     except:
         user_tag = "N/A"
-    try:
-        text = update.message.text
-    except:
+    
+    if update.message.photo or update.message.video:
         text = update.message.caption
+    else:
+        text = update.message.text
 
     if not any(user_id in d.values() for d in cfg.users_list) or not cfg.is_active(user_id):
         await update.message.delete()
@@ -122,16 +165,23 @@ async def market_msg_updater(update: Update, context: ContextTypes.DEFAULT_TYPE)
         return
 
     cfg.update_user(user_id, str(update.message.from_user.full_name), user_tag)
-
+    
     if cfg.is_feedback(text):
         print(cfg.get_tag_from_text(text))
         if "@" not in text:
             return
         cfg.add_feedback(cfg.get_id_from_tag(cfg.get_tag_from_text(text)), user_id, text)
         await update.message.forward(cfg.feedback_id)
+        await context.bot.send_message(cfg.log_channel_id, f"Feedback aggiunto da {update.message.from_user.full_name} ({user_id}) a {cfg.get_tag_from_text(text)} ({cfg.get_id_from_tag(cfg.get_tag_from_text(text))})")
         return
+    
     if cfg.is_admin(user_id):
         return
+    
+    if not cfg.is_sell_post(text) and not cfg.is_buy_post(text) and not "@admin" in text and not "@asteygoitamarketing" in text and not "claim" in text:
+        await update.message.delete()
+        return
+    
     if cfg.is_sell_post(text):
         if not cfg.is_seller(user_id):
             await context.bot.send_message(user_id, "Il tuo messaggio è stato eliminato, non sei un venditore! Usa /seller per poter vendere nel gruppo market.")
@@ -140,15 +190,19 @@ async def market_msg_updater(update: Update, context: ContextTypes.DEFAULT_TYPE)
         if str(datetime.now().date()) == cfg.get_date(user_id, is_sell_post=True):
             await context.bot.send_message(user_id, "Il tuo messaggio è stato eliminato, hai già inviato un post di vendo oggi!")
             await update.message.delete()
+            return
         cfg.set_date_today(user_id, is_sell_post=True)
         await context.bot.send_message(cfg.log_channel_id, "Inviato post di vendo da " + update.message.from_user.full_name + " con testo:\n" + update.message.text)
-
+        return
+    
     if cfg.is_buy_post(text):
         if str(datetime.now().date()) == cfg.get_date(user_id, is_sell_post=False):
             await context.bot.send_message(user_id, "Il tuo messaggio è stato eliminato, hai già inviato un post di cerco oggi!")
             await update.message.delete()
+            return
         cfg.set_date_today(user_id, is_sell_post=False)
         await context.bot.send_message(cfg.log_channel_id, "Inviato post di cerco da " + update.message.from_user.full_name + " con testo:\n" + update.message.text)
+        return
 
 async def announce(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     admin_id = str(update.message.from_user.id)
@@ -160,7 +214,23 @@ async def announce(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         try:
             await context.bot.send_message(user["id"], update.message.text.replace("/announce", ""))
         except:
-            pass
+            return
+
+# Command to restore the dates of last_buy_post and last_sell_post of a user, usage: /resetdate @username
+async def reset_date(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    admin_id = str(update.message.from_user.id)
+    if not cfg.is_admin(admin_id):
+        return
+    user_tag = cfg.remove_tag(update.message.text.replace("/resetdate ", ""))
+    user_id = cfg.get_id_from_tag(user_tag)
+    if not cfg.reset_date(user_id):
+        await context.bot.send_message(admin_id, "Utente non trovato!")
+        return
+    await context.bot.send_message(admin_id, "Date di " + user_tag + " resettate!")
+    await context.bot.send_message(cfg.log_channel_id, "Date di " + user_tag + " resettate da " + update.message.from_user.full_name + ".\n Ora: " + str(datetime.now()))
+
+async def gdpr(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    await context.bot.send_message(update.message.from_user.id, cfg.gdpr_msg)
 
 # debug
 async def on_user_msg(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
