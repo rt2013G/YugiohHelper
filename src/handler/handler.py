@@ -21,6 +21,9 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
 # Card search with /card
 async def card_search_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    message = cfg.remove_tag(update.message.text).replace("/card ", "")
+    if message == "" or len(message) > 60:
+        return
     await context.bot.send_message(update.message.chat_id, card_search.card_search(
         cfg.remove_tag(update.message.text.replace("/card ", ""))), 
         disable_web_page_preview=True)
@@ -88,7 +91,11 @@ async def add_admin(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
 # Command to check if user_id is a seller or not, usage: /checkseller @username
 async def check_seller(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    user_id = cfg.get_id_from_tag(cfg.remove_tag(update.message.text.replace("/checkseller ", "")))
+    try:
+        user_id = cfg.get_id_from_tag(cfg.remove_tag(update.message.text).replace("/checkseller ", ""))
+    except:
+        await context.bot.send_message(update.message.chat_id, "L'utente non è un venditore!")
+        return
     if cfg.is_seller(user_id):
         await context.bot.send_message(update.message.chat_id, "L'utente è un venditore!")
     else:
@@ -155,9 +162,8 @@ async def market_msg_updater(update: Update, context: ContextTypes.DEFAULT_TYPE)
     else:
         text = update.message.text
 
-    if not any(user_id in d.values() for d in cfg.users_list) or not cfg.is_active(user_id):
-        await update.message.delete()
-        return
+    if not any(user_id in d.values() for d in cfg.users_list):
+        cfg.add_user_to_list(user_id, str(update.message.from_user.full_name), user_tag)
 
     if(cfg.is_scammer(user_id)):
         await context.bot.send_message(update.message.chat_id, f"Ho eliminato il messaggio di {update.message.from_user.full_name}, tag: @{user_tag} perche' e' uno scammer!")

@@ -36,7 +36,10 @@ async def video(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     if update.message.from_user.username is None:
         await update.message.reply_text("Non hai un @username, non puoi diventare seller.", reply_markup=ReplyKeyboardRemove())
         return ConversationHandler.END
-    video = await context.bot.get_file(update.message.video)
+    if update.message.video:
+        video = await context.bot.get_file(update.message.video)
+    elif update.message.video_note:
+        video = await context.bot.get_file(update.message.video_note)
     await video.download_to_drive(os.path.dirname(__file__) + f"/../data/auth_files/{update.message.from_user.id}.mp4")
     await context.bot.forward_message(cfg.approve_group, update.message.chat_id, update.message.message_id)
     await context.bot.send_message(cfg.approve_group, f"Codice: {cfg.get_code_from_id(update.message.from_user.id)}")
@@ -50,7 +53,7 @@ conv_handler = ConversationHandler(
         entry_points=[CommandHandler("seller", seller, filters.ChatType.PRIVATE)],
         states={
             CODE: [MessageHandler(filters.Regex("^(Autenticazione)$"), code), CommandHandler("annulla", cancel)],
-            VIDEO: [MessageHandler(filters.VIDEO, video), CommandHandler("annulla", cancel)],
+            VIDEO: [MessageHandler(filters.VIDEO | filters.VIDEO_NOTE, video), CommandHandler("annulla", cancel)],
         },
         fallbacks=[CommandHandler("annulla", cancel)],
     )
